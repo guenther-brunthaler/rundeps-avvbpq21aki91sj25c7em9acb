@@ -230,6 +230,7 @@ then
 	| grep -vE '.*/[^/]*[#.,~][^/]*$|\^^|^@$|$\$' > "$f" & pid0=$!
 	exec < "$f"; redir0=true
 fi
+nss='[^[:space:]]\+'
 while IFS= read -r exe
 do
 	case $exe in
@@ -237,5 +238,29 @@ do
 	esac
 	expr x"$exe" : x".*[[:space:]]" > /dev/null && continue
 	test ! -e "$exe" || test ! -x "$exe" && continue
-	echo $exe
+	bexe=${exe##*/}
+	{
+		{
+			"$exe" "$query" | sed '
+				/^'"$nss $nss"'$/! s/.*/BAD BAD/
+				s/\(.*\) \(.*\)/\1\n\2/
+			' | sed '
+				s/^\^\(.*\)/\1$/; t
+				s/\(.*\)\$$/^\1/
+			'
+			print '^@'; print '@'
+			print '@'; print '@$'
+		} | {
+			read item
+			case $item in
+				"^@") print "^$bexe";;
+				"@") print "$bexe";;
+				"@$") print "^$bexe\$";;
+				*) print "$item"
+			esac
+		} | {
+			read before; read after
+			print "$before $after $exe"
+		}
+	}
 done
