@@ -1,0 +1,18 @@
+#! /bin/sh
+set -e
+trap 'test $? = 0 || echo "$0 failed!" >& 2' 0
+
+deps() {
+	cat <<- '.'
+		^$network @
+		@ $network$
+		^$modem @
+		@ $modem$
+		$modem_modules$ @
+.
+}
+
+case $1 in
+	deps) $1;;
+	*) false || exit
+esac
